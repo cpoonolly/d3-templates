@@ -1,0 +1,26 @@
+{
+  "name": "d3-templates",
+  "version": "1.0.0",
+  "description": "angular component that creates a d3 directive for processes d3 vistualizations as templates",
+  "main": "src/d3-templates.js",
+  "directories": {
+    "example": "examples",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "eslint": "^2.1.0",
+    "gulp": "^3.9.1",
+    "gulp-eslint": "^2.0.0",
+    "jquery": "^2.2.0",
+    "lodash": "^4.3.0",
+    "wiredep": "^3.0.0"
+  },
+  "devDependencies": {
+    "gulp-bower": "0.0.13"
+  }
+}
