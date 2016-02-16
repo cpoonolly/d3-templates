@@ -29,7 +29,7 @@ angular.module('test1', ['d3-templates'])
 
 			$scope.updateTest1Data = function() {
 				_.forEach($scope.test1D3Data, function(datum) {
-					datum.val = Math.floor(Math.random() * BAR_WIDTH);
+					datum.val = Math.floor(Math.random() * BAR_MAX_HEIGHT);
 				});
 			};
 
@@ -62,7 +62,7 @@ angular.module('test1', ['d3-templates'])
 							class: 'test1-data-wrap',
 							data: $scope.test1D3Data,
 							dataKeyFn: $scope.test1D3DataKeyFn,
-							enterActions: {
+							updateActions: {
 								attr: {
 									transform: $scope.test1D3BarTransform
 								}
@@ -80,7 +80,7 @@ angular.module('test1', ['d3-templates'])
 											y: 0,
 											x: 0
 										},
-										style: {fill: 'red'}
+										style: {fill: 'blue'}
 									},
 									updateActions: {
 										attr: {
