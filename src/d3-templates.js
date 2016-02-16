@@ -11,12 +11,13 @@ angular.module('d3-templates', [])
 			return {
 				scope: {
 					templates: '=',
-					templateChange: '='
+					templateWatchExpression: '='
 				},
 				link: function(scope, element, attrs) {
 					var TEMPLATE_SUPPORTED_ACTIONS = ['attr', 'text', 'html', 'classed', 'style', 'property', 'remove'],
 						selection = d3Service.select(element[0]),
-						processStaticIteration = true;
+						processStaticIteration,
+						uniqueClassMap;
 
 					function processTemplateActions(actionTemplate, selection) {
 						_(actionTemplate)
@@ -28,59 +29,49 @@ angular.module('d3-templates', [])
 						return selection
 					}
 
-					function processTemplates(templates, parentEnterSelection, parentUpdateSelection, isDataBound) {
+					function processTemplates(templates, parentEnterSelection, parentUpdateSelection) {
 						if (_.isUndefined(parentEnterSelection)) {
 							throw Error('no parent selection specified');
-						}
-
-						if (_.isUndefined(isDataBound)) {
-							isDataBound = false;
 						}
 
 						_.forEach(templates, function(template) {
 							var staticSelection,
 								enterSelection,
-								updateSelection;
+								updateSelection,
+								selector;
 
 							if (!template.tag) {
 								throw Error('tag must be specified for each element');
 							}
 
-							if (template.data) {
-								if (!template.selector) {
-									throw Error('selector needs to be specified for data bound child');
-								}
+							if (!template.class) {
+								throw Error('class must be specified for each element');
+							} else if (uniqueClassMap[template.class] !== undefined) {
+								throw Error('non-unique class entered for element');
+							}
 
-								updateSelection = parentEnterSelection.selectAll(template.selector)
+							selector = template.tag + '.' + template.class;
+							template.enterActions = _.defaultsDeep(template.enterActions, {attr: {class: template.class}});
+
+							if (template.data) {
+								updateSelection = parentEnterSelection.selectAll(selector)
 									.data(template.data, template.dataKeyFn);
 								enterSelection = updateSelection.enter()
 									.append(template.tag);
-
-								if (template.enterActions) {
-									enterSelection = processTemplateActions(template.enterActions, enterSelection);
-								}
-
-								isDataBound = true;
-							} else if (!isDataBound && !processStaticIteration) {
+							} else if (!parentUpdateSelection && !processStaticIteration) {
 								if (template.children) {
-									processTemplates(template.children, parentEnterSelection.selectAll(template.selector));
+									processTemplates(template.children, parentEnterSelection.selectAll(selector));
 								}
 
 								return;
 							} else {
 								enterSelection = parentEnterSelection.append(template.tag);
+							}
 
-								if (template.enterActions) {
-									enterSelection = processTemplateActions(template.enterActions, enterSelection);
-								}
+							enterSelection = processTemplateActions(template.enterActions, enterSelection);
 
-								if (isDataBound) {
-									if (!template.selector) {
-										throw Error('selector needs to be specified for data bound child');
-									}
-
-									updateSelection = parentUpdateSelection.selectAll(template.selector);
-								}
+							if (parentUpdateSelection) {
+								updateSelection = parentUpdateSelection.selectAll(selector);
 							}
 
 							if (updateSelection) {
@@ -94,18 +85,22 @@ angular.module('d3-templates', [])
 							}
 
 							if (template.children) {
-								processTemplates(template.children, enterSelection, updateSelection, isDataBound);
+								processTemplates(template.children, enterSelection, updateSelection);
 							}
 						}, this);
 					}
 
-					scope.$watch(scope.templateChange, function() {
+					scope.$watch(scope.templateWatchExpression, function() {
+						console.log('watch registered a change reprocessing...');
+
+						uniqueClassMap = {};
+						processStaticIteration = false;
 						processTemplates(scope.templates, selection);						
 					});
 
+					uniqueClassMap = {};
 					processStaticIteration = true;
 					processTemplates(scope.templates, selection);
-					processStaticIteration = false;
 				}
 			};
 		}

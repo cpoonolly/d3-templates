@@ -33,8 +33,13 @@ angular.module('test1', ['d3-templates'])
 				});
 			};
 
+			$scope.test1D3WatchExpression = function() {
+				return _($scope.test1D3Data).map('val').join('|');
+			};
+
 			$scope.test1D3Template = [{
 				tag: 'svg',
+				class: 'svg-main',
 				enterActions: {
 					attr: {
 						width: (BAR_COUNT * BAR_WIDTH),
@@ -44,28 +49,21 @@ angular.module('test1', ['d3-templates'])
 				children: [
 					{
 						tag: 'text',
+						class: 'test1-title',
 						enterActions: {
-							attr: {
-								class: 'test1-title'
-							},
 							text: 'Test 1 Data!'	
 						}
 					},
 					{
 						tag: 'g',
-						enterActions: {
-							attr: {
-								class: 'test1-wrapper'
-							}
-						},
+						class: 'test1-wrapper',
 						children: [{
 							tag: 'g',
+							class: 'test1-data-wrap',
 							data: $scope.test1D3Data,
 							dataKeyFn: $scope.test1D3DataKeyFn,
-							selector: 'g.test1-data-wrap',
 							enterActions: {
 								attr: {
-									class: 'test1-data-wrap',
 									transform: $scope.test1D3BarTransform
 								}
 							},
@@ -75,10 +73,9 @@ angular.module('test1', ['d3-templates'])
 							children: [
 								{
 									tag: 'rect',
-									selector: 'rect.test1-data-bar',
+									class: 'test1-data-bar',
 									enterActions: {
 										attr: {
-											class: 'test1-data-bar',
 											width: BAR_WIDTH,
 											y: 0,
 											x: 0

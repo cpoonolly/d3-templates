@@ -8,8 +8,15 @@
 		<div ng-app="test1">
 			<div ng-controller="test1Controller">
 				<h1>{{test1Message}}</h1>
-				<d3-template templates="test1D3Template"></d3-template>
-				<button ng-click="updateTest1Data()"></button>
+				<div class="row">
+					<d3-template 
+						templates="test1D3Template"
+						template-watch-expression="test1D3WatchExpression">
+					</d3-template>
+				</div>
+				<div class="row">
+					<button ng-click="updateTest1Data()">Update Datums</button>
+				</div>
 			</div>
 		</div>
   		<!-- bower:js -->
