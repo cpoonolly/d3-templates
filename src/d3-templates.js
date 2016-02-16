@@ -35,10 +35,10 @@ angular.module('d3-templates', [])
 						}
 
 						_.forEach(templates, function(template) {
-							var staticSelection,
-								enterSelection,
+							var enterSelection,
 								updateSelection,
-								selector;
+								selector,
+								templateDefaults;
 
 							if (!template.tag) {
 								throw Error('tag must be specified for each element');
@@ -50,15 +50,31 @@ angular.module('d3-templates', [])
 								throw Error('non-unique class entered for element');
 							}
 
+							templateDefaults = {
+								enterActions: {attr: {class: template.class}},
+								updateActions: {},
+								exitActions: {}
+							};
+
 							selector = template.tag + '.' + template.class;
-							template.enterActions = _.defaultsDeep(template.enterActions, {attr: {class: template.class}});
+							template = _.defaultsDeep(template, templateDefaults);
 
 							if (template.data) {
 								updateSelection = parentEnterSelection.selectAll(selector)
 									.data(template.data, template.dataKeyFn);
 								enterSelection = updateSelection.enter()
 									.append(template.tag);
-							} else if (!parentUpdateSelection && !processStaticIteration) {
+
+								enterSelection = processTemplateActions(template.enterActions, enterSelection);
+								updateSelection = processTemplateActions(template.updateActions, updateSelection);
+								processTemplateActions(template.exitActions, updateSelection.exit());
+							} else if (parentUpdateSelection) {
+								enterSelection = parentEnterSelection.append(template.tag);
+								enterSelection = processTemplateActions(template.enterActions, enterSelection);
+
+								updateSelection = parentUpdateSelection.selectAll(selector);
+								updateSelection = processTemplateActions(template.updateActions, updateSelection);
+							} else if (!processStaticIteration) {
 								if (template.children) {
 									processTemplates(template.children, parentEnterSelection.selectAll(selector));
 								}
@@ -66,22 +82,7 @@ angular.module('d3-templates', [])
 								return;
 							} else {
 								enterSelection = parentEnterSelection.append(template.tag);
-							}
-
-							enterSelection = processTemplateActions(template.enterActions, enterSelection);
-
-							if (parentUpdateSelection) {
-								updateSelection = parentUpdateSelection.selectAll(selector);
-							}
-
-							if (updateSelection) {
-								if (template.updateActions) {
-									updateSelection = processTemplateActions(template.updateActions, updateSelection);
-								}
-
-								if (template.exitActions) {
-									processTemplateActions(template.exitActions, updateSelection.exit());
-								}
+								enterSelection = processTemplateActions(template.enterActions, enterSelection);
 							}
 
 							if (template.children) {
