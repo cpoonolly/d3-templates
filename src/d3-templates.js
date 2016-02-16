@@ -10,11 +10,13 @@ angular.module('d3-templates', [])
 		function(d3Service) {
 			return {
 				scope: {
-					templates: '='
+					templates: '=',
+					templateChange: '='
 				},
 				link: function(scope, element, attrs) {
 					var TEMPLATE_SUPPORTED_ACTIONS = ['attr', 'text', 'html', 'classed', 'style', 'property', 'remove'],
-						selection = d3Service.select(element[0]);
+						selection = d3Service.select(element[0]),
+						processStaticIteration = true;
 
 					function processTemplateActions(actionTemplate, selection) {
 						_(actionTemplate)
@@ -26,101 +28,84 @@ angular.module('d3-templates', [])
 						return selection
 					}
 
-					function processDataBoundTemplate(template, parentEnterSelection, parentUpdateSelection) {
-						var dataEnterSelection, dataUpdateSelection;
-
-						if (!template.tag) {
-							throw Error('tag must be specified for all elements');
+					function processTemplates(templates, parentEnterSelection, parentUpdateSelection, isDataBound) {
+						if (_.isUndefined(parentEnterSelection)) {
+							throw Error('no parent selection specified');
 						}
 
-						if (!template.selector) {
-							throw Error('selector needs to be specified for data bound child');
-						}
-
-						dataEnterSelection = parentEnterSelection.append(template.tag);
-						if (template.enterActions) {
-							dataEnterSelection = processTemplateActions(template.enterActions, dataEnterSelection);
-						}
-
-						dataUpdateSelection = parentUpdateSelection.selectAll(template.selector);
-						if(template.updateActions) {
-							dataUpdateSelection = processTemplateActions(template.updateActions, dataUpdateSelection);
-						}
-
-						if (template.children) {
-							_.forEach(template.children, function(childTemplate) {
-								processDataBoundTemplate(childTemplate, dataEnterSelection, dataUpdateSelection);
-							}, this);
-						}
-
-						if (template.dataBoundChildren) {
-							processDataBoundChildTemplates(template.dataBoundChildren, dataEnterSelection);
-						}
-					}
-
-					function processDataBoundChildTemplates(dataBoundChildTemplates, selection) {
-						var dataEnterSelection,
-							dataUpdateSelection;
-
-						_.forEach(dataBoundChildTemplates, function(dataBoundChildTemplate) {
-							if (!dataBoundChildTemplate.selector) {
-								throw Error('selector needs to be specified for data bound child');
-							}
-
-							if (!dataBoundChildTemplate.data) {
-								throw Error('data needs to be specified for data bound child');
-							}
-
-							dataUpdateSelection = selection.selectAll(dataBoundChildTemplate.selector)
-								.data(dataBoundChildTemplate.data, dataBoundChildTemplate.dataKeyFn);
-							dataEnterSelection = dataUpdateSelection.enter();
-
-							processDataBoundTemplate(dataBoundChildTemplate, dataEnterSelection, dataUpdateSelection);
-
-							if (dataBoundChildTemplate.exitActions) {
-								processTemplateActions(dataBoundChildTemplate.exitActions, dataUpdateSelection.exit());
-							}
-						}, this);
-					}
-
-					// function processDataBoundTemplate(template, parentSelection) {
-					// 	if (!dataBoundChildTemplate.selector) {
-					// 		throw Error('a data bound template element needs a selector');
-					// 	}
-					// }
-
-					// function processStaticTemplate(template, parentSelection) {
-						
-					// }
-
-					function processTemplates(templates, parentSelection) {
-						if (_.isUndefined(parentSelection)) {
-							return;
+						if (_.isUndefined(isDataBound)) {
+							isDataBound = false;
 						}
 
 						_.forEach(templates, function(template) {
-							var currentSelection;
+							var staticSelection,
+								enterSelection,
+								updateSelection;
 
 							if (!template.tag) {
 								throw Error('tag must be specified for each element');
 							}
 
-							currentSelection = parentSelection.append(template.tag);
-							if (template.actions) {
-								currentSelection = processTemplateActions(template.actions, currentSelection);
+							if (template.data) {
+								if (!template.selector) {
+									throw Error('selector needs to be specified for data bound child');
+								}
+
+								updateSelection = parentEnterSelection.selectAll(template.selector)
+									.data(template.data, template.dataKeyFn);
+								enterSelection = updateSelection.enter()
+									.append(template.tag);
+
+								if (template.enterActions) {
+									enterSelection = processTemplateActions(template.enterActions, enterSelection);
+								}
+
+								isDataBound = true;
+							} else if (!isDataBound && !processStaticIteration) {
+								if (template.children) {
+									processTemplates(template.children, parentEnterSelection.selectAll(template.selector));
+								}
+
+								return;
+							} else {
+								enterSelection = parentEnterSelection.append(template.tag);
+
+								if (template.enterActions) {
+									enterSelection = processTemplateActions(template.enterActions, enterSelection);
+								}
+
+								if (isDataBound) {
+									if (!template.selector) {
+										throw Error('selector needs to be specified for data bound child');
+									}
+
+									updateSelection = parentUpdateSelection.selectAll(template.selector);
+								}
+							}
+
+							if (updateSelection) {
+								if (template.updateActions) {
+									updateSelection = processTemplateActions(template.updateActions, updateSelection);
+								}
+
+								if (template.exitActions) {
+									processTemplateActions(template.exitActions, updateSelection.exit());
+								}
 							}
 
 							if (template.children) {
-								processTemplates(template.children, currentSelection);
-							}
-
-							if (template.dataBoundChildren) {
-								processDataBoundChildTemplates(template.dataBoundChildren, currentSelection);
+								processTemplates(template.children, enterSelection, updateSelection, isDataBound);
 							}
 						}, this);
 					}
 
-					processTemplates(scope.templates, selection);	
+					scope.$watch(scope.templateChange, function() {
+						processTemplates(scope.templates, selection);						
+					});
+
+					processStaticIteration = true;
+					processTemplates(scope.templates, selection);
+					processStaticIteration = false;
 				}
 			};
 		}
